@@ -1,28 +1,41 @@
 import sys
+import argparse
+from collections import defaultdict
 
-optC = False
-optP = False
-for v in sys.argv:
-	if v == "-c":
-		optC = True
-	if v == "-p":
-		optP = True
-	if v == "-h" or v == "--help":
-		print("cat FILENAME | python3 uniq.py")
-		print("  -p : print also duplicated lines to stderr")
-		print("  -c : print also duplicated lines with its count to stderr")
-		print("  -h : print this message")
-		sys.exit()
+def main():
+	parser = argparse.ArgumentParser(
+		description="A uniq-like program that works without sorting the input."
+	)
+	parser.add_argument(
+		"-p",
+		action="store_true",
+		help="Print duplicated lines to stderr."
+	)
+	parser.add_argument(
+		"-c",
+		action="store_true",
+		help="Print duplicated lines with their count to stderr."
+	)
 
-ha = {}
-for line in sys.stdin:
-	if ha.get(line):
-		ha[line] += 1
-		if optC or optP:
-			if optC:
-				print(ha[line], "", end="", file=sys.stderr)
-			print(line, end="", file=sys.stderr)
-	else:
-		print(line, end="")
-		ha[line] = 1
+	args = parser.parse_args()
 
+	counts = defaultdict(int)
+
+	if sys.stdin.isatty():
+		parser.print_help()
+		sys.exit(0)
+
+	for line in sys.stdin:
+		counts[line] += 1
+		if counts[line] == 1:
+			# first occurrence → stdout
+			print(line, end="")
+		else:
+			# duplicate
+			if args.c:
+				print(counts[line], "", end="", file=sys.stderr)
+			if args.p or args.c:
+				print(line, end="", file=sys.stderr)
+
+if __name__ == "__main__":
+	main()
